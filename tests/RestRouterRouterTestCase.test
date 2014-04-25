@@ -1,0 +1,157 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+require_once dirname(__FILE__) . "/../includes/Router.inc";
+require_once dirname(__FILE__) . "/../includes/Endpoint.inc";
+
+class RestRouterRouterTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Router',
+      'description' => 'Test router functionality',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testRouterBasics() {
+    // Test all different methods matching
+    $methods = array('GET', 'POST', 'PUT', 'DELETE', 'OPTIONS');
+    foreach ($methods as $method) {
+      $router = $this->createRouter($method, 'path');
+      $router->routes[$method . ':path'] = array(
+        'path' => 'path',
+        'page callback' => 'test',
+        'access callback' => 'test',
+        'http method' => $method,
+      );
+      $item = $router->_menuMatchItem();
+      $this->assertIdentical($method, $item['http method'], "Wrong HTTP method");
+      $this->assertIdentical('test', $item['page callback'], "Wrong page callback");
+      $this->assertIdentical('test', $item['access callback'], "Wrong access callback");
+    }
+
+    // Test missing menu item
+    $router = $this->createRouter('GET', 'path');
+    $router->routes['POST:path'] = array(
+      'path' => 'path',
+      'page callback' => 'test',
+      'access callback' => 'test',
+      'http method' => 'POST',
+    );
+    $this->assertIdentical($router->_menuMatchItem(), NULL, "Menu item isn't defined for GET:path request.");
+  }
+
+  public function testRouterObjectRouting() {
+    $router = $this->createRouter('GET', 'path/1');
+    $router->routes['GET:path/%api::loader_func'] = array(
+      'path' => 'path/%api::loader_func',
+      'page callback' => 'api::access_func',
+      'access callback' => 'api::access_func',
+      'http method' => 'GET',
+    );
+    $router->routes['POST:path/%node'] = array(
+      'path' => 'path/%node',
+      'page callback' => 'node_view',
+      'access callback' => 'user_access',
+      'http method' => 'POST',
+    );
+    $item = $router->_menuMatchItem();
+    $this->assertIdentical($item['path'], 'path/%', "Menu path wasn't translated to correct menu mask");
+    $this->assertIdentical($item['page callback'], 'rest_router_page_callback', "Page callback wasn't translted to 'rest_router_page_callback'");
+    $this->assertEqual(count(unserialize($item['page arguments'])), 2, "Menu item should have 2 page arguments when routing to object");
+    $this->assertIdentical($item['access callback'], 'rest_router_access_callback', "Access callback wasn't translted to 'rest_router_access_callback'");
+    $this->assertEqual(count($item['access arguments']), 2, "Menu item should have 2 access arguments when routing to object");
+    $this->assertTrue(isset($item['_load_functions'][1]['rest_router_loader_callback']), "Loader function isn't set correctly to 'rest_router_loader_callback'");
+    $this->assertEqual(count($item['_load_functions'][1]['rest_router_loader_callback']), 2, "Loader functin should have 2 extra arguments");
+  }
+
+  public function testRouterResponses() {
+    // Test 404 for missing route
+    $router = $this->createRouter('GET', 'path');
+    try {
+      $response = $router->process();
+      $this->fail("Non existing route should generate 404 RestRouterResponse");
+    }
+    catch (RestRouterException $e) {
+      $this->pass("Not found exception generated when non-existing path is requested.");
+      $this->assertIdentical($e->code, 404, "Not found response should be");
+    }
+
+    // Test 401
+    $router->routes['GET:path'] = array(
+      'path' => 'path',
+      'page callback' => 'api::access_func',
+      'access callback' => 'api::access_func_deny',
+      'http method' => 'GET',
+    );
+    $response = $router->process();
+    $this->assertIdentical($response->code(), 401, "Forbiden response should be 401 code.");
+    $this->assertIdentical($response->getMessage(), 'Access denied', "Response message should be Access denied.");
+
+    // Test 200 normal response
+    $router->routes['GET:path'] = array(
+      'path' => 'path',
+      'page callback' => 'api::response_array',
+      'access callback' => 'api::access_func',
+      'http method' => 'GET',
+    );
+    $response = $router->process();
+    $this->assertIdentical($response->code(), 200, "Successful response should be 200 code.");
+    $this->assertIdentical($response->data(), array('key' => 'value'), "Wront data returned from method");
+
+    // Test 301 normal response
+    $router->routes['GET:path'] = array(
+      'path' => 'path',
+      'page callback' => 'api::response_redirect',
+      'access callback' => 'api::access_func',
+      'http method' => 'GET',
+    );
+    $response = $router->process();
+    $this->assertIdentical($response->code(), 301, "Successful response should be 200 code.");
+    $this->assertIdentical($response->data(), NULL, "Wront data returned from method");
+
+  }
+
+  /**
+   * Create router based on method and path.
+   *
+   * @param $method
+   *   HTTP method string i.e. GET, POST
+   * @param $path
+   *   Requested path
+   * @return
+   *   RestRouterTestRouter
+   */
+  protected function createRouter($method, $path) {
+    $request = $this->createRequest($path, array(), array(), array(
+        'REQUEST_METHOD' => $method,
+    ), $this->createEndpoint(array(
+      'versions' => array(
+        '1.0' => array('router' => 'RestRouterTestRouter', 'class' => 'RestRouterTestEndpoint')
+      ),
+    )));
+    $request->setVersion('1.0');
+    return new RestRouterTestRouter($request);
+  }
+}
+
+class RestRouterTestRouter extends RestRouterApiRouter {
+  public $routes = array();
+
+  public function routes() {
+    return $this->routes;
+  }
+
+  public function _menuMatchItem() {
+    return $this->menuMatchItem($this->request->getPath(), $this->request->method());
+  }
+}
+
+class RestRouterTestEndpoint extends RestRouterApiEndpoint {
+  public function loader_func($arg) {}
+  public function access_func() { return TRUE; }
+  public function access_func_deny() { return FALSE; }
+  public function callback_func() {}
+  public function response_array() { return array('key' => 'value'); }
+  public function response_redirect() { return rest_router_redirect('newpath'); }
+}

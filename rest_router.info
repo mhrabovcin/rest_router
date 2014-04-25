@@ -1,0 +1,29 @@
+name = REST Router
+description = Custom rest router for API
+package = Acquia
+dependencies[] = oauth_common
+
+core = 7.x
+version = 7.x-1.0
+
+; Classes
+files[] = includes/Auth.inc
+files[] = includes/Exception.inc
+files[] = includes/Endpoint.inc
+files[] = includes/Formatter.inc
+files[] = includes/Parser.inc
+files[] = includes/Request.inc
+files[] = includes/Response.inc
+files[] = includes/Router.inc
+files[] = includes/Version.inc
+
+; Tests
+files[] = tests/RestRouterFormatterTestCase.test
+files[] = tests/RestRouterIntegrationTestCase.test
+files[] = tests/RestRouterParserTestCase.test
+files[] = tests/RestRouterRequestTestCase.test
+files[] = tests/RestRouterResponseTestCase.test
+files[] = tests/RestRouterRouterTestCase.test
+files[] = tests/RestRouterUnitTestCase.test
+files[] = tests/RestRouterVersionTestCase.test
+files[] = tests/RestRouterWebTestCase.test

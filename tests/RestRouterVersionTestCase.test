@@ -1,0 +1,76 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+
+class RestRouterVersionTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Version parsers',
+      'description' => 'Test different version parsers',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testPathVersion() {
+    $this->assertPathVersion('path', NULL, "No version should be detected in 'path'");
+    $this->assertPathVersion('path/v1', NULL, "No version should be detected in 'path/v1'");
+    $this->assertPathVersion('v1/path', '1.0', "Version '1.0' should be detected in 'v1/path'");
+    $this->assertPathVersion('v1.0/path', '1.0', "Version '1.0' should be detected in 'v1.0/path'");
+    $this->assertPathVersion('v2/path', '2.0', "Version '2.0' should be detected in 'v2/path'");
+    $this->assertPathVersion('vnone/path', NULL, "No version should be detected in 'vnone/path'");
+
+    $request = $this->createRequest('mypath');
+    $request->setVersion('1.0');
+    $request->setVersionHandler(new RestRouterVersionPath($request));
+    $this->assertNotIdentical(strpos($request->url('newpath'), 'v1.0'), FALSE, "Generated URL should contain version in path");
+  }
+
+  /**
+   * Test version detection via Path plugin
+   *
+   * @param $path
+   *   Requested path
+   * @param $version
+   *   Expected version detected
+   * @param $message
+   *   Assert error message
+   * @param $settings
+   *   Optionally plugin settings array
+   */
+  protected function assertPathVersion($path, $version, $message, $settings = array()) {
+    $request = $this->createRequest($path);
+    $plugin = new RestRouterVersionPath($request, $settings);
+    $this->assertIdentical($plugin->version(), $version, $message);
+  }
+
+  public function testQueryVersion() {
+    $this->assertQueryVersion(array('v' => '1'), '1.0', "Version '1.0' should be detected in v => 1");
+    $this->assertQueryVersion(array('v' => '1.0'), '1.0', "Version '1.0' should be detected in v => 1.0");
+    $this->assertQueryVersion(array('v' => 'none'), NULL, "No version 'none' should be detected in v => none");
+    $this->assertQueryVersion(array('version' => '1.0'), NULL, "No version '1.0' should be detected in version => 1.0");
+    $this->assertQueryVersion(array('version' => '2.0'), '2.0', "Version '2.0' should be detected in version => 2.0", array('key' => 'version'));
+
+    $request = $this->createRequest('mypath');
+    $request->setVersion('1.0');
+    $request->setVersionHandler(new RestRouterVersionQuery($request));
+    $this->assertNotIdentical(strpos($request->url('newpath'), 'v=1.0'), FALSE, "Generated URL should contain version in path");
+  }
+
+  /**
+   * Test version detection via Query plugin
+   *
+   * @param $get
+   *   $_GET array in request
+   * @param $version
+   *   Expected version detected
+   * @param $message
+   *   Assert error message
+   * @param $settings
+   *   Optionally plugin settings array
+   */
+  protected function assertQueryVersion($get, $version, $message, $settings = array()) {
+    $request = $this->createRequest('test', $get);
+    $plugin = new RestRouterVersionQuery($request, $settings);
+    $this->assertIdentical($plugin->version(), $version, $message);
+  }
+}

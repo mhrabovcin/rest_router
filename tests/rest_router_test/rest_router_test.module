@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * @file
+ * Test API
+ */
+
+function rest_router_test_rest_endpoints() {
+  return array(
+    'rest_router_test' => array(
+      'path' => '_rest_router_test',
+      'name' => 'Rest Router Test',
+      'versions' => array(
+        '1.0' => array(
+          'router' => 'RestRouterTestRouterV1',
+          'class'  => 'RestRouterTestApiV1',
+        ),
+        '2.0' => array(
+          'router' => 'RestRouterTestRouterV2',
+          'class'  => 'RestRouterTestApiV2',
+        ),
+      ),
+      'default version' => '1.0',
+      'auth' => array(
+        'oauth' => array('type' => '2legged', 'context' => 'rest_router_test'),
+      ),
+      'version' => array('path' => array()),
+    ),
+  );
+}

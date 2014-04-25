@@ -1,0 +1,34 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+
+class RestRouterFormatterTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Formatter',
+      'description' => 'Test formatter functionality',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testFormatterJson() {
+    list($request, $response, $formatter) = $this->createFormatter('json');
+    $this->assertIdentical($formatter->format(), NULL, "Formatter is expected to return NULL when no data in response");
+    list($request, $response, $formatter) = $this->createFormatter('json', array('array' => 'test'));
+    $this->assertIdentical($formatter->format(), json_encode(array('array' => 'test')), "Formatter is expected to return json version of array data");
+    list($request, $response, $formatter) = $this->createFormatter('missing', array('array' => 'test'));
+    $this->assertIdentical($response->code(), 406, "On missing formatter response should be modified.");
+    $this->assertIdentical($formatter->format(), NULL, "On missing formatter should be response NULL");
+  }
+
+  protected function createFormatter($formatter, $response_data = NULL) {
+    $formatters = RestRouterFormatter::formatters();
+    $formatter = !empty($formatters[$formatter]['accept'][0]) ? $formatters[$formatter]['accept'][0] : '';
+    $request = $this->createRequest('test', array(), array('Accept' => $formatter));
+    $response = new RestRouterResponse(200, $response_data);
+    $response->setRequest($request);
+    $formatter = new RestRouterFormatter($request, $response);
+    $formatter->prepare();
+    return array($request, $response, $formatter);
+  }
+}

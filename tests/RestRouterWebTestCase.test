@@ -1,0 +1,237 @@
+<?php
+
+/**
+ * @file
+ * Base test case for Rest Router testing
+ */
+
+class RestRouterWebTestCase extends DrupalWebTestCase {
+  public function setUp() {
+    $modules = func_get_args();
+    $modules = $modules[0];
+    $required = array('rest_router', 'oauth_common', 'ctools');
+    $modules = array_merge($modules, $required);
+    parent::setUp($modules);
+  }
+
+  /**
+   * Create new oAuth context
+   *
+   * @param $name
+   *   Name of the new context
+   * @param $title
+   *   Context title
+   * @return
+   *   Context object
+   */
+  public function createContext($name, $title) {
+    $context = new stdClass();
+    $context->disabled = FALSE; /* Edit this to true to make a default context disabled initially */
+    $context->api_version = 1;
+    $context->name = $name;
+    $context->title = $title;
+    $context->authorization_options = array(
+      'access_token_lifetime' => NULL,
+      'page_title' => NULL,
+      'message' => NULL,
+      'warning' => NULL,
+      'deny_access_title' => NULL,
+      'grant_access_title' => NULL,
+      'disable_auth_level_selection' => NULL,
+      'signature_methods' => array(
+        0 => 'HMAC-SHA1',
+        1 => 'HMAC-SHA256',
+        2 => 'HMAC-SHA384',
+        3 => 'HMAC-SHA512',
+      ),
+      'default_authorization_levels' => array(),
+    );
+    $context->authorization_levels = array();
+    oauth_common_context_save($context);
+    return oauth_common_context_load($context->name);
+  }
+
+  /**
+   * Create new oauth consumer associated with user.
+   *
+   * @param $account
+   *   User account
+   * @param $context
+   *   OAauth context object
+   * @param $name
+   *   Token name
+   * @return
+   *   DrupalOAuthConsumer
+   */
+  public function createOauthConsumer($account, $context, $name = NULL) {
+    $name = !empty($name) ? $name : $this->randomName(8);
+    $consumer = new DrupalOAuthConsumer(user_password(32), user_password(32), array(
+      'callback_url' => 'oob',
+      'uid' => $account->uid,
+      'provider_consumer' => TRUE,
+      'context' => $context->name,
+      'name' => $name,
+    ));
+    $consumer->write();
+    return $consumer;
+  }
+
+  /**
+   * Create authorization token for existing consumer
+   *
+   * @param $consumer
+   *   DrupalOAuthConsumer
+   * @return
+   *   DrupalOAuthToken
+   */
+  public function createOauthAuthorization(DrupalOAuthConsumer $consumer) {
+    $token = new DrupalOAuthToken(user_password(32), user_password(32), $consumer, array(
+      'uid' => $consumer->uid,
+      'authorized' => 1,
+      'type' => OAUTH_COMMON_TOKEN_TYPE_ACCESS
+    ));
+    $token->write();
+    return $token;
+  }
+
+  /**
+   * Create oAuth signed request
+   *
+   * @param $method
+   *   HTTP method name
+   * @param $path
+   *   Requested path
+   * @param $data
+   *   Optional additional data
+   * @return
+   *   Request reponse
+   */
+  public function jsonSignedHttpRequest($method, $path, $data = array()) {
+    // Build singature
+    $token = isset($this->token) ? $this->token : NULL;
+    $req = OAuthRequest::from_consumer_and_token($this->consumer, $token, $method, url($path, array('absolute' => TRUE)), array());
+    $signature_method = DrupalOAuthClient::signatureMethod();
+    $req->sign_request($signature_method, $this->consumer, $token);
+    list($header_key, $header_val) = explode(': ', $req->to_header());
+
+    // Create request
+    $options = array('headers' => array(
+      'Content-Type' => 'application/json',
+      'Accept' => 'application/json',
+      'Authorization' => $header_val,
+    ));
+    if (!empty($data)) {
+      $options['data'] = json_encode($data);
+    }
+    $content = $this->httpRequest($method, $path, $options);
+    if (!empty($content)) {
+      return json_decode($content);
+    }
+  }
+
+  public function jsonHttpRequest($method, $path, $data = array(), $redirect = TRUE) {
+    $options = array('headers' => array(
+      'Content-Type' => 'application/json',
+      'Accept' => 'application/json',
+    ));
+    if (!empty($data)) {
+      $options['data'] = json_encode($data);
+    }
+    $content = $this->httpRequest($method, $path, $options, $redirect);
+    if (!empty($content)) {
+      return json_decode($content);
+    }
+  }
+
+  /**
+   * Do raw HTTP request
+   *
+   * @param $method
+   *   HTTP method - GET, POST
+   * @param $path
+   *   Requested path
+   * @param  array  $options
+   *   Available options:
+   *   'data' => data string
+   *   'headers' => array of HTTP headers
+   */
+  public function httpRequest($method, $path, $options = array(), $redirect = TRUE) {
+    $curl_opts = array(
+      CURLOPT_URL => url($path, array('absolute' => TRUE)),
+      CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_FOLLOWLOCATION => FALSE,
+    );
+
+    // Other than GET request
+    $method = strtoupper($method);
+    if ($method != 'GET') {
+      $curl_opts[CURLOPT_CUSTOMREQUEST] = $method;
+    }
+
+    // Custom data to be encoded
+    if (!empty($options['data'])) {
+      $curl_opts[CURLOPT_POSTFIELDS] = $options['data'];
+    }
+
+    // Custom headers
+    if (!empty($options['headers'])) {
+      $headers = array();
+      foreach ($options['headers'] as $key => $val) {
+        $headers[] = "{$key}: {$val}";
+      }
+      $curl_opts[CURLOPT_HTTPHEADER] = $headers;
+    }
+
+    // Execute request
+    return $this->curlExec($curl_opts, !$redirect);
+  }
+
+  public function assertHttpHeader($name, $expected, $message = NULL) {
+    return $this->assertEqual($this->drupalGetHeader($name), $expected, $message);
+  }
+
+  public function drupalGetHeaders() {
+    $headers = parent::drupalGetHeaders();
+    $out = array();
+    foreach ($headers as $name => $value) {
+      if ($name == ':status') {
+        $matches = array();
+        preg_match('~^HTTP[^ ]+\s(?P<code>\d+)\s(?P<message>[\w ]+)(?:\:\s(?P<additional>.*))?$~i', $value, $matches);
+        $out['HTTP'] = $value;
+        $out['HTTP_CODE'] = $matches['code'];
+        $out['HTTP_MESSAGE'] = $matches['message'];
+        if (!empty($matches['additional'])) {
+          $out['HTTP_MESSAGE_ADDITIONAL'] = $matches['additional'];
+        }
+      }
+      else {
+        $out[$this->normalizeHeader($name)] = $value;
+      }
+    }
+    return $out;
+  }
+
+  protected function drupalGetHeader($name, $all_requests = FALSE) {
+    $name = strtoupper($name);
+    $header = FALSE;
+    if ($all_requests) {
+      foreach (array_reverse($this->drupalGetHeaders()) as $headers) {
+        if (isset($headers[$name])) {
+          $header = $headers[$name];
+          break;
+        }
+      }
+    }
+    else {
+      $headers = $this->drupalGetHeaders();
+      if (isset($headers[$name])) {
+        $header = $headers[$name];
+      }
+    }
+    return $header;
+  }
+
+  public function normalizeHeader($key) {
+    return preg_replace('~[\- ]~', '_', strtoupper($key));
+  }
+}

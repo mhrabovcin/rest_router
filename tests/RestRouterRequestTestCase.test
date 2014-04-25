@@ -1,0 +1,73 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+
+class RestRouterRequestTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Request',
+      'description' => 'Test basic request',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testCommon() {
+    // Path handling
+    $request = $this->createRequest('test');
+    $this->assertIdentical($request->getPath(), 'test', 'Path is differnt from one set when creating request');
+    $request->setPath('newpath');
+    $this->assertIdentical($request->getPath(), 'newpath', "Expected path is 'newpath'");
+
+    // Version handling
+    $this->assertIdentical($request->getVersion(), NULL, "Request shoudln't provide default version");
+    $request->setVersion('1.0');
+    $this->assertIdentical($request->getVersion(), '1.0', "Expected 1.0 version.");
+  }
+
+  public function testMethodDetection() {
+    // Test all basic requests
+    $methods = array('GET', 'POST', 'PUT', 'DELETE', 'OPTIONS');
+    foreach ($methods as $method) {
+      $request = $this->createRequest('test', array(), array(), array(
+        'REQUEST_METHOD' => $method,
+      ));
+      $this->assertIdentical($request->method(), $method, "No {$method} method detected from basic request");
+    }
+
+    // Test method overriding
+    $request = $this->createRequest('test', array(), array('X-Http-Method-Override' => 'PUT'), array('REQUEST_METHOD' => 'POST'));
+    $this->assertIdentical($request->method(), 'PUT', "No PUT method detected from X-Http-Method-Override");
+    $request = $this->createRequest('test', array('_method' => 'DELETE'), array(), array('REQUEST_METHOD' => 'POST'));
+    $this->assertIdentical($request->method(), 'DELETE', "No DELETE method detected from $_GET _method");
+
+    // Test lowercase methods
+    $request = $this->createRequest('test', array(), array(), array(
+      'REQUEST_METHOD' => 'get',
+    ));
+    $this->assertIdentical($request->method(), 'GET', "No GET method detected from lowercase request");
+  }
+
+  public function testContentTypeDetection() {
+    $request = $this->createRequest('test');
+    $this->assertIdentical($request->contentType(), NULL, "No content type should be detected from request without header");
+
+    $request = $this->createRequest('test', array(), array('Content-Type' => 'application/json'));
+    $this->assertIdentical($request->contentType(), 'application/json', "No application/json found in request with Content-Type header");
+  }
+
+  public function testHeaderDetection() {
+    $request = $this->createRequest('test', array(), array(
+      'Content-Type' => 'application/json',
+      'Accept' => 'application/json',
+      'Content-Length' => '20',
+      'Host' => 'www.drupal.org',
+      'User-Agent' => 'Simpletest'
+    ));
+
+    $this->assertIdentical($request->headers('CONTENT_TYPE'), 'application/json', "Missing content type header");
+    $this->assertIdentical($request->headers('ACCEPT'), 'application/json', "Missing Accept header");
+    $this->assertIdentical($request->headers('CONTENT_LENGTH'), '20', "Missing Content-Length header");
+    $this->assertIdentical($request->headers('HOST'), 'www.drupal.org', "Missing Host header");
+    $this->assertIdentical($request->headers('USER_AGENT'), 'Simpletest', "Missing User-Agent header");
+  }
+}

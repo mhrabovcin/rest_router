@@ -1,0 +1,50 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+
+class RestRouterResponseTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Response',
+      'description' => 'Test response functionality',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testResponseBasics() {
+    // Response codes + status
+    $response = new RestRouterResponse(200);
+    $this->assertIdentical($response->code(), 200, "Response has different code than used in constructor");
+    $this->assertIdentical($response->status(), '200 OK', "Response has correct status");
+    $response->setCode(404);
+    $this->assertIdentical($response->code(), 404, "Response has different code than set");
+    $this->assertIdentical($response->status(), '404 Not Found', "Response has correct status");
+
+    // PHP Data
+    $this->assertIdentical($response->data(), NULL, "No data was set to response");
+    $response->setData("test");
+    $this->assertIdentical($response->data(), "test", "Data returned from are different");
+
+    // Headers
+    $this->assertIdentical($response->headers(), array(), "Headers should be empty");
+    $response->addHeader('X-Custom', 'value');
+    $this->assertIdentical($response->headers(), array('X-Custom' => 'value'), "Headers should contain one header");
+    $this->assertIdentical($response->headers('X-Custom'), 'value', "Headers should contain one header");
+  }
+
+  public function testErrorResponse() {
+    $response = new RestRouterErrorResponse(401, 'Access denied');
+    $this->assertIdentical($response->status(), '401 Unauthorized: Access denied', "Response is returning wrong status");
+  }
+
+  public function testRedirectResponse() {
+    $request = $this->createRequest('oldpath');
+    $request->setVersion('1.0');
+    $request->setVersionHandler(new RestRouterVersionPath($request));
+    $response = new RestRouterRedirectResponse('newpath');
+    $response->setRequest($request);
+    $this->assertIdentical($response->status(), '301 Moved Permanently');
+    $response->prepare();
+    $this->assertIdentical($response->headers('Location'), url('test/v1.0/newpath'), "Response location redirect is wrong.");
+  }
+}

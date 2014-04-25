@@ -1,0 +1,11 @@
+name = REST Router TEST
+description = Test module
+package = Acquia
+dependencies[] = rest_router
+
+core = 7.x
+version = 7.x-1.0
+
+hidden = TRUE
+
+files[] = rest_router_test.class.inc

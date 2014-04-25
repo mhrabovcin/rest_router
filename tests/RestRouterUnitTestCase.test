@@ -1,0 +1,117 @@
+<?php
+
+class RestRouterUnitTestCase extends DrupalUnitTestCase {
+
+  /**
+   * Initialize test case
+   */
+  public function setUp() {
+    parent::setUp();
+    $path = drupal_get_path('module', 'rest_router') . '/includes';
+    foreach(file_scan_directory($path, '~^.*\.inc$~') as $file) {
+      require_once $file->uri;
+    }
+  }
+
+  /**
+   * Create new HTTP request
+   *
+   * @param $path
+   *   Path that is being processed
+   * @param $get
+   *   $_GET array params
+   * @param $headers
+   *   Headers array
+   * @param $server
+   *   PHP Server array
+   * @param $endpoint
+   *   Endpoint definition
+   * @return
+   *   RestRouterRequest
+   */
+  protected function createRequest($path, $get = array(), $headers = array(), $server = array(), $endpoint = NULL) {
+    $endpoint = $endpoint ? $endpoint : $this->createEndpoint();
+    $server = $this->headersToServer($headers) + $server;
+    return new RestRouterRequest($endpoint, $path, $get, $server);
+  }
+
+  /**
+   * Convert headers to server format
+   *
+   * @param $headers
+   *   Headers array in HTTP format i.e.
+   *   array(
+   *     'content-type' => 'application/json',
+   *     'x-version' => '1.0',
+   *     'accept' => 'text/html',
+   *   )
+   * @return
+   *   PHP $_SERVER array format of headers i.e.
+   *   array(
+   *     'CONTENT_TYPE' => 'application/json',
+   *     'HTTP_X_VERSION' => '1.0',
+   *     'HTTP_ACCEPT' => 'application/json',
+   *   )
+   */
+  protected function headersToServer($headers) {
+    // These headers don't have HTTP_ prefix in $_SERVER array
+    $special = array('CONTENT_LENGTH', 'CONTENT_MD5', 'CONTENT_TYPE');
+    $server = array();
+    foreach ($headers as $key => $val) {
+      // Create PHP version of header name
+      $name = $this->normalizeHeaderName($key);
+
+      // Add prefix if not special header
+      if (!in_array($name, $special)) {
+        $name = 'HTTP_' . $name;
+      }
+
+      // Add header to output array
+      $server[$name] = $val;
+    }
+
+    return $server;
+  }
+
+  /**
+   * Transform header from HTTP format i.e. Content-Type to PHP $_SERVER array
+   * format CONTENT_TYPE
+   *
+   * @param $name
+   *   HTTP format header name
+   * @return
+   *   PHP $_SERVER format header
+   */
+  protected function normalizeHeaderName($name) {
+    return preg_replace('/[\- ]/', '_', strtoupper($name));
+  }
+
+  /**
+   * Create fake REST endpoint
+   *
+   * @param $endpoint
+   *   Values that should be overriden in default endpoint
+   * @return
+   *   Endpoint definition
+   */
+  protected function createEndpoint($endpoint = array()) {
+    return $endpoint + array(
+      'path' => 'test',
+      'title' => 'Test endpoint',
+      'versions' => array(
+        '1.0' => array('router' => 'FakeRouterV1', 'class' => 'FakeApiV1'),
+        '2.0' => array('router' => 'FakeRouterV2', 'class' => 'FakeApiV2'),
+      ),
+      'default version' => '1.0',
+      'auth' => array(
+        'oauth' => array(
+          'type' => '2legged',
+          'context' => 'fake_context'
+        ),
+      ),
+      'version' => array('path' => array()),
+      'response' => array('json'),
+      'request' => array('json'),
+    );
+  }
+}

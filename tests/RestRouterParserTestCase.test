@@ -1,0 +1,34 @@
+<?php
+
+require_once "RestRouterUnitTestCase.test";
+
+class RestRouterParserTestCase extends RestRouterUnitTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Parser',
+      'description' => 'Test parser functionality',
+      'group' => 'Rest Router Unit'
+    );
+  }
+
+  public function testParserJson() {
+    list($request, $parser) = $this->createParser('json');
+    $data = array('test' => 'data');
+    $this->assertIdentical($parser->parse(json_encode($data)), $data, "Parser should return array('test' => 'data')");
+    try {
+      list($request, $parser) = $this->createParser('non-existing');
+      $this->fail('Missing parser should generate exception.');
+    }
+    catch (RestRouterException $e) {
+      $this->pass('Missing parser is generating exception.');
+    }
+  }
+
+  protected function createParser($parser) {
+    $parsers = RestRouterParser::parsers();
+    $content_type = !empty($parsers[$parser]['mime'][0]) ? $parsers[$parser]['mime'][0] : '';
+    $request = $this->createRequest('test', array(), array('Content-Type' => $content_type));
+    $parser = new RestRouterParser($request);
+    return array($request, $parser);
+  }
+}

@@ -1,0 +1,166 @@
+<?php
+
+/**
+ * @file
+ * Basic integration test for Rest Router
+ */
+
+class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Basic router',
+      'description' => 'Test router functionality',
+      'group' => 'Rest Router'
+    );
+  }
+
+  public function setUp() {
+    parent::setUp(array('rest_router_test'));
+  }
+
+  /**
+   * Basic drupal menu integration
+   */
+  public function testMenuIntegration() {
+    // Test creating endpoint menu items
+    $item = menu_get_item('_rest_router_test');
+    $this->assertEqual($item['page_callback'], 'rest_router_handler', "Router menu item has correct page callback.");
+    $this->assertEqual($item['page_arguments'][0], 'rest_router_test', "Router menu item has correct endpoint name.");
+    $this->assertEqual($item['access_callback'], TRUE, "Router menu item has open access.");
+
+    // Test caching endpoints
+    rest_router_get_endpoints();
+    $cache = cache_get('rest_router_endpoints');
+    $this->assertTrue(!empty($cache->data), "Rest router caches endpoints.");
+  }
+
+  /**
+   * Tests basic routing functionality to object methods
+   */
+  public function testRouterBasics() {
+    // Basic test without authentication
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/test');
+    $this->assertEqual($data[0], "test", "Test method return correct output.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Test method return correct HTTP code.");
+
+    // Test non-existing router
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/non-existing');
+    $this->assertEqual($data, NULL, "Non existing route output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 404, "Non existing route returns 404 HTTP code.");
+
+    // Test access denied route
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/denied');
+    $this->assertEqual($data, NULL, "Access denied route output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 401, "Access denied route returns 401 HTTP code.");
+
+    // Test route behind access function
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/approved');
+    $this->assertEqual($data[0], "test", "Route with approved access callback output is correct.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Route with approved access returns 200 HTTP code.");
+
+    // Test not supported content-type header
+    $data = $this->httpRequest('GET', '_rest_router_test/v1/test', array('headers' => array(
+      'Content-Type' => 'my-crazy-format',
+      'Accept' => 'application/json',
+    )));
+    $this->assertEqual($data, NULL, "Non-acceptable format request output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 406, "Non-acceptable format request returns 406 HTTP code.");
+    $this->assertHttpHeader('HTTP_MESSAGE_ADDITIONAL', "Requested response format my-crazy-format isn't supported.", "Additional message is correct.");
+
+    // Test not supported accept header
+    $data = $this->httpRequest('GET', '_rest_router_test/v1/test', array('headers' => array(
+      'Content-Type' => 'application/json',
+      'Accept' => 'my-crazy-format',
+    )));
+    $this->assertEqual($data, NULL, "Non-acceptable format request output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 406, "Non-acceptable format request returns 406 HTTP code.");
+
+    // Arguments passing
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/arg/passed');
+    $this->assertEqual($data[0], "passed", "Route with argument passed correctly.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Route with argument returns 200 HTTP code.");
+
+    // Arguments loader
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/arg-transform/passed');
+    $this->assertEqual($data[0], "passed_transformed", "Route with argument passed correctly.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Route with argument returns 200 HTTP code.");
+  }
+
+  /**
+   * Tests versinioning of API - page, access callbacks and loader functions
+   */
+  public function testRouterVersioning() {
+    // Test v1 response
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/test');
+    $this->assertEqual($data[0], "test", "Test method return correct output.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Test method return correct HTTP code.");
+
+    // Test v2 response
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2.0/test');
+    $this->assertEqual($data[0], "testv2", "Test method return correct output.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Test method return correct HTTP code.");
+
+    // Test v1 existing route
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/approved');
+    $this->assertEqual($data[0], "test", "Route with approved access callback output is correct.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Route with approved access returns 200 HTTP code.");
+
+    // Test v2 removed route
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2/approved');
+    $this->assertEqual($data, NULL, "Deleted route output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 404, "Deleted route returns 404 HTTP code.");
+
+    // Test access callback change
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/denied');
+    $this->assertEqual($data, NULL, "Access denied route output is NULL.");
+    $this->assertHttpHeader('HTTP_CODE', 401, "Access denied route returns 401 HTTP code.");
+
+    // Changed acess callback in v2
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2/denied');
+    $this->assertEqual($data[0], "testv2", "Route is accessible in v2 api.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Route returns 200 HTTP code in v2.");
+  }
+
+  /**
+   * Test using specific router reponses
+   */
+  public function testRouterResponses() {
+    $common = array(
+      'ok' => 200,
+      'not_found' => 404,
+      'access_denied' => 401,
+      'internal_error' => 500,
+    );
+    foreach ($common as $type => $code) {
+      // Test response codes
+      $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/response/' . $type);
+      $this->assertEqual($data, $type, "Response {$type} returns correct data.");
+      $this->assertHttpHeader('HTTP_CODE', $code, "Response {$type} return correct {$code} HTTP code.");
+    }
+
+    // Test special redirect case
+    $this->redirect_count = 10000;
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/response/redirect', array(), FALSE);
+    $this->assertHttpHeader('HTTP_CODE', 302, "Redirect response return correct 302 HTTP code.");
+    $this->assertHttpHeader('LOCATION', "/_rest_router_test/v1.0/response/redirected", "Redirect response return correct Location header.");
+  }
+
+  /**
+   * Test oAuth integration
+   */
+  public function testRouterAuth() {
+    // Create required objects
+    $this->account  = $this->drupalCreateUser(array('access own authorizations', 'access own consumers'));
+    $this->context  = $this->createContext('rest_router_test', 'Rest Router Test');
+    $this->consumer = $this->createOauthConsumer($this->account, $this->context);
+    // $this->token    = $this->createOauthAuthorization($this->consumer);
+
+    // Test non-signed request that should fail
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/access-user');
+    $this->assertHttpHeader('HTTP_CODE', 401, "Non signed request returns 401 HTTP code.");
+
+    $data = $this->jsonSignedHttpRequest('GET', '_rest_router_test/v1/access-user');
+    $this->assertEqual($data[0], "test", "Singed request returns correct data.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Signed requrest returns 200 HTTP code.");
+  }
+}

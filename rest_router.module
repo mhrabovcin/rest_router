@@ -1,0 +1,364 @@
+<?php
+
+/**
+ * @file
+ * REST router API module which provides a way to create multiple drupal REST
+ * endpoints with URL definition similar to core hook_menu().
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function rest_router_menu() {
+  $items = array();
+
+  // Get list of all endpoints
+  $endpoints = rest_router_get_endpoints();
+
+  // For each endpoint create general menu handler which
+  // will process requests on defined URL
+  foreach ($endpoints as $name => $endpoint) {
+    $items[$endpoint['path']] = array(
+      'page callback' => 'rest_router_handler',
+      'page arguments' => array($name),
+      'access callback' => TRUE,
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Get defined REST endpoints
+ */
+function rest_router_get_endpoints() {
+  $output = array();
+
+  // This is invoked on every router API request so it should be cached
+  // rather than collect list of available APIs by invoking hook_rest_endpoints.
+  if ($cache = cache_get('rest_router_endpoints')) {
+    $output = $cache->data;
+  }
+  else {
+    // Collect all module definitions
+    foreach (module_implements('rest_endpoints') as $module) {
+      $endpoints = call_user_func($module . '_rest_endpoints');
+      if (isset($endpoints) && is_array($endpoints)) {
+        foreach (array_keys($endpoints) as $path) {
+          $endpoints[$path]['module'] = $module;
+        }
+        $output = array_merge($output, $endpoints);
+      }
+    }
+
+    // Add default endpoint structure
+    foreach (array_keys($output) as $name) {
+      $output[$name] += array(
+        'auth' => array(),
+        'version' => array(),
+        'request' => array('json'),
+        'response' => array('json'),
+      );
+    }
+
+    cache_set('rest_router_endpoints', $output);
+  }
+
+  // Allow other modules to change configuration
+  drupal_alter('rest_endpoints', $output);
+
+  return $output;
+}
+
+/**
+ * Get defined REST endpoints
+ *
+ * @param $name
+ *   Machine name of the endpoint
+ * @return
+ *   Endpoint definition
+ */
+function rest_router_get_endpoint($name) {
+  $endpoints = rest_router_get_endpoints();
+  return isset($endpoints[$name]) ? $endpoints[$name] : NULL;
+}
+
+/**
+ * Determine router path without prefix
+ *
+ * @param $endpoint
+ *   Endpoint definition
+ * @param $path
+ *   Requested path
+ * @return
+ *   Path withtout prefix
+ */
+function rest_router_get_path($endpoint, $path = NULL) {
+  $path = !empty($path) ? $path : $_GET['q'];
+
+  // If endpoint path is part of URL remove it from further processing.
+  if (strpos($path, $endpoint['path']) === 0) {
+    $path = trim(substr($path, strlen($endpoint['path'])), '/');
+  }
+
+  return $path;
+}
+
+/**
+ * Create router instance
+ *
+ * @param $request
+ *   RestRouterRequest object
+ * @return
+ *   RestRouterApiRouter object instance
+ */
+function rest_router_create_router(RestRouterRequest $request) {
+  $endpoint = $request->endpoint();
+  // Get router class name
+  $class = $endpoint['versions'][$request->getVersion()]['router'];
+  // Create class if is available
+  if ($class && class_exists($class)) {
+    return new $class($request);
+  }
+  else {
+    throw new Exception(t('Missing router class for path "@path" version "@version"', array(
+      '@path' => $request->getPath(),
+      '@version' => $request->getVersion(),
+    )));
+  }
+}
+
+/**
+ * Main menu handler for endpoint path
+ *
+ * @param $name
+ *  Api endpoint callback
+ * @return
+ */
+function rest_router_handler($name) {
+  $response = NULL;
+
+  // Load endpoint definition. If endpoint isn't available there is
+  // nothig to process.
+  $endpoint = rest_router_get_endpoint($name);
+  if (empty($endpoint)) {
+    return MENU_NOT_FOUND;
+  }
+  // Get path cleared for endpoint base
+  $path = rest_router_get_path($endpoint);
+
+  // Create new request representation
+  $request = new RestRouterRequest($endpoint, $path);
+  // Allow other modules to alter request
+  drupal_alter('rest_router_request', $request);
+
+  try {
+    $request->prepare();
+    // Set API version
+    rest_router_version($request);
+    // Authenticate possible users
+    rest_router_authenticate($request);
+    // Create router for handling request
+    $router = rest_router_create_router($request);
+    // Process the request and get Response object
+    $response = $router->process();
+  }
+  // Intentionally generated exception during runtime that contains
+  // additional information about response
+  catch (RestRouterException $e) {
+    $response = new RestRouterErrorResponse($e->code, $e->message, $e->data);
+  }
+  // General exception that should result in HTTP 500
+  catch (Exception $e) {
+    watchdog('rest_router', '@message', array('@message' => $e->getMessage()), WATCHDOG_ERROR);
+    $response = new RestRouterErrorResponse(500, '');
+  }
+
+  // If response has been created deliver it.
+  if ($response) {
+    if (!empty($request)) {
+      $response->setRequest($request);
+    }
+    rest_router_deliver($response);
+  }
+  else {
+    return MENU_NOT_FOUND;
+  }
+}
+
+/**
+ * Deliver HTTP response
+ *
+ * @param $response
+ *   RestRouterResponse object
+ */
+function rest_router_deliver(RestRouterResponse $response) {
+  $response->prepare();
+
+  // Set headers from response
+  drupal_add_http_header('Status', $response->status());
+  foreach ($response->headers() as $name => $value) {
+    drupal_add_http_header($name, $value, TRUE);
+  }
+
+  // If response contains body
+  $body = $response->body();
+  if (!empty($body)) {
+    echo $body;
+  }
+
+  // End drupal
+  drupal_exit();
+}
+
+/**
+ * Run authentiation plugins to set correct user.
+ *
+ * @param $request
+ *   RestRouterRequest object
+ */
+function rest_router_authenticate(RestRouterRequest $request) {
+  $plugins = rest_router_plugins('auth');
+  $endpoint = $request->endpoint();
+
+  // Process all plugins
+  foreach ($endpoint['auth'] as $name => $settings) {
+    if (isset($plugins[$name])) {
+      $plugin = new $plugins[$name]($request, $settings);
+      $account = $plugin->authenticate();
+      // User got authenticated by plugin
+      if (!empty($account->uid)) {
+        // Set new user
+        global $user;
+        drupal_save_session(FALSE);
+        $user = $account;
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * Create new redirect response for router.
+ *
+ * @param $path
+ *   API destination path (without version)
+ * @param $code
+ *   Redirect code
+ * @return
+ *   RestRouterRedirectResponse
+ */
+function rest_router_redirect($path, $code = 301) {
+  return new RestRouterRedirectResponse($path, $code);
+}
+
+/**
+ * Retrieve version of requested API.
+ *
+ * @param $request
+ *   RestRouterRequest object
+ * @return
+ *   Version string
+ */
+function rest_router_version(RestRouterRequest $request) {
+  $plugins  = rest_router_plugins('version');
+  $endpoint = $request->endpoint();
+
+  // Process all version parser plugins
+  foreach ($endpoint['version'] as $name => $settings) {
+    if (isset($plugins[$name])) {
+      $plugin = new $plugins[$name]($request, $settings);
+      $version = $plugin->version();
+      // If plugin detected API version stop processing and set
+      // version to API.
+      if ($version !== NULL) {
+        // If version is not available in API
+        if (!isset($endpoint['versions'][$version])) {
+          throw new RestRouterException(404, "Version not found");
+        }
+        $request->setVersion($version);
+        $request->setVersionHandler($plugin);
+        return;
+      }
+    }
+  }
+
+  // If endpoint definition sets default version
+  if (!empty($endpoint['default version'])) {
+    $request->setVersion($endpoint['default version']);
+  }
+  else {
+    throw new RestRouterException(404, 'Missing API version');
+  }
+}
+
+/**
+ * Get map of plugins of certain type.
+ *
+ * @param $type
+ *   Type of the plugins
+ *   'auth', 'version'
+ * @return
+ *   Array of plugins
+ */
+function rest_router_plugins($type = NULL) {
+  $plugins = array(
+    'auth' => array(
+      'oauth' => 'RestRouterAuthOAuth',
+    ),
+    'version' => array(
+      'path' => 'RestRouterVersionPath',
+      'query' => 'RestRouterVersionQuery',
+    ),
+  );
+
+  return isset($plugins[$type]) ? $plugins[$type] : array();
+}
+
+/**
+ * Call API loader callback on object.
+ *
+ * @param $value
+ *   Loader function value
+ * @param $object
+ *   Api object
+ * @param $method
+ *   Name of object method
+ * @return
+ *   Boolean
+ */
+function rest_router_loader_callback($value, $object, $method) {
+  return call_user_func_array(array($object, $method), array($value));
+}
+
+/**
+ * Call API access callback on object.
+ *
+ * @param $object
+ *   Api object
+ * @param $method
+ *   Name of object method
+ * @return
+ *   Boolean
+ */
+function rest_router_access_callback($object, $method) {
+  // Remove object reference and method name from args
+  $args = array_slice(func_get_args(), 2);
+  return call_user_func_array(array($object, $method), $args);
+}
+
+/**
+ * Call API page callback on object.
+ *
+ * @param $object
+ *   Api object
+ * @param $method
+ *   Name of object method
+ * @return
+ *   Boolean
+ */
+function rest_router_page_callback($object, $method) {
+  // Remove object reference and method name from args
+  $args = array_slice(func_get_args(), 2);
+  return call_user_func_array(array($object, $method), $args);
+}
