@@ -94,3 +94,43 @@ class RestRouterAuthOAuth extends RestRouterAuth {
     }
   }
 }
+
+/**
+ * Class RestRouterAuthAnonymous
+ *
+ * Anonymous authentication for RestRouter.
+ */
+class RestRouterAuthAnonymous extends RestRouterAuth {
+  public function authenticate() {
+    return user_load(0);
+  }
+}
+
+/**
+ * Class RestRouterAuthBasic
+ *
+ * Basic Auth support for RestRouter.
+ *
+ * Client includes an Authorization: Basic header with a base64 encoded
+ * username:password . So for user foo with password bar, the header would be:
+ *
+ * Authorization: Basic Zm9vOmJhcg==
+ *
+ * Note that if this request is not sent over a secure connection the username
+ * and password will be visible.
+ */
+class RestRouterAuthBasic extends RestRouterAuth {
+  public function authenticate() {
+    $username = $_SERVER['PHP_AUTH_USER'];
+    $password = $_SERVER['PHP_AUTH_PW'];
+    $account = user_load_by_name($username);
+
+    require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+    if (user_check_password($password, $account)) {
+      return $account;
+    }
+    else {
+      return FALSE;
+    }
+  }
+}
