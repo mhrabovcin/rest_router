@@ -149,7 +149,6 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
    * Test oAuth integration
    */
   public function testRouterAuth() {
-    return;
     // Create required objects
     $this->account  = $this->drupalCreateUser(array('access own authorizations', 'access own consumers'));
     $this->context  = $this->createContext('rest_router_test', 'Rest Router Test');
