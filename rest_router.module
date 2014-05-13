@@ -305,6 +305,8 @@ function rest_router_plugins($type = NULL) {
   $plugins = array(
     'auth' => array(
       'oauth' => 'RestRouterAuthOAuth',
+      'anonymous' => 'RestRouterAuthAnonymous',
+      'basic' => 'RestRouterAuthBasic'
     ),
     'version' => array(
       'path' => 'RestRouterVersionPath',
