@@ -17,13 +17,17 @@ To create new rest endpoint module needs to implement `hook_rest_endpoints`. Hoo
 
 Object or function callbacks called by rest_router module can return repsonse in different data formats. Scalar responses are always converted to array
 
+```php
     function my_callback() {
         return "value";
     }
+```
 
 Will become in response data
 
+```php
     array("value")
+```
 
 If other than `200 OK` response is required function can return one of response defined response objects.
 
@@ -35,6 +39,7 @@ Each response has helper method that can be used from inherited class.
 
 **Examples**
 
+```php
     public function myMethod() {
         // Custom response by initializing class
         return new RestRouterResponse(204);
@@ -45,6 +50,7 @@ Each response has helper method that can be used from inherited class.
         // Redirect resposne exmaple
         return $this->redirectResponse('method/2');
     }
+```
 
 ### Ideas
 
