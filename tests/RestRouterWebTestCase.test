@@ -9,7 +9,7 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
   public function setUp() {
     $modules = func_get_args();
     $modules = $modules[0];
-    $required = array('rest_router', 'oauth_common', 'ctools');
+    $required = array('rest_router', 'ctools', 'oauth_common');
     $modules = array_merge($modules, $required);
     parent::setUp($modules);
   }
@@ -190,8 +190,8 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
     return $this->assertEqual($this->drupalGetHeader($name), $expected, $message);
   }
 
-  public function drupalGetHeaders() {
-    $headers = parent::drupalGetHeaders();
+  public function drupalGetHeaders($all_requests = FALSE) {
+    $headers = parent::drupalGetHeaders($all_requests = FALSE);
     $out = array();
     foreach ($headers as $name => $value) {
       if ($name == ':status') {

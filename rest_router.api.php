@@ -24,7 +24,7 @@ function hook_rest_endpoints() {
         // API version
         '1.0' => array(
           // Class of router, must inherit RestRouterApiRouter
-          'router' => 'NspiApiRouterV1', 
+          'router' => 'NspiApiRouterV1',
           // Callbacks class, must inherit RestRouterEndpoint
           'class' => 'NspiApiV1'
         ),
@@ -35,7 +35,7 @@ function hook_rest_endpoints() {
       'default version' => '1.0',
       // List of supported authenticatin plugins
       'auth' => array(
-        // Key is machine name of plugin and value is array which represents 
+        // Key is machine name of plugin and value is array which represents
         // configuration.
         'oauth' => array(
           'type' => '2legged',

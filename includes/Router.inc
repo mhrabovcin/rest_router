@@ -35,6 +35,20 @@ abstract class RestRouterApiRouter {
   protected $version;
 
   /**
+   * Custom menu mask array
+   *
+   * @var array
+   */
+  protected $mask;
+
+  /**
+   * Store original menu masks
+   *
+   * @var array
+   */
+  private $originalMasks;
+
+  /**
    * Constructor
    *
    * @param $request
@@ -125,9 +139,16 @@ abstract class RestRouterApiRouter {
    * Retrieve menu item that is matching path + method
    */
   protected function menuMatchItem($path, $method) {
-    $parts = explode('/', $path);
-    $ancestors = menu_get_ancestors($parts);
     $routes = $this->getRoutes();
+    $parts = explode('/', $path);
+
+    // To get correct list of ancestors we need to override menu masks
+    // variable with custom map from our routes. After ancestors are retrieved
+    // reset menu_masks variable to Drupal default.
+    $this->overrideMenuMask($this->mask);
+    $ancestors = menu_get_ancestors($parts);
+    $this->resetMenuMask();
+
     uasort($routes, 'RestRouterApiRouter::compareMenuItems');
     foreach ($ancestors as $ancestor) {
       $key = $method . '/' . $ancestor;
@@ -137,6 +158,38 @@ abstract class RestRouterApiRouter {
     }
   }
 
+  /**
+   * Temporarily override menu_masks array with custom routes configuration.
+   *
+   * @param array $mask
+   *   Drupal menu router bitmask
+   */
+  public function overrideMenuMask($mask = array()) {
+    global $conf;
+    $this->originalMasks = $conf['menu_masks'];
+    $conf['menu_masks'] = $mask;
+  }
+
+  /**
+   * Reset router mask overrides.
+   */
+  public function resetMenuMask() {
+    global $conf;
+    $conf['menu_masks'] = $this->originalMasks;
+  }
+
+  /**
+   * Compare two menu items callback.
+   *
+   * @param array $a
+   *   First item to compare
+   *
+   * @param array $b
+   *   Second item to compare
+   *
+   * @return int
+   *   Comparison result: -1, 0, 1
+   */
   static function compareMenuItems($a, $b) {
     return version_compare($a['_fit'], $b['_fit']) * -1;
   }
@@ -151,6 +204,8 @@ abstract class RestRouterApiRouter {
     $routes = $this->routes();
     drupal_alter('rest_routes', $routes, $this->endpoint);
     list($menu, $mask) = $this->buildRouter($routes);
+    // Store custom ancestor mask
+    $this->mask = $mask;
     return $menu;
   }
 

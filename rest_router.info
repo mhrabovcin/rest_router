@@ -1,6 +1,5 @@
 name = REST Router
-description = Custom rest router for API
-package = Acquia
+description = Custom rest router for API builing
 dependencies[] = oauth_common
 
 core = 7.x

@@ -65,6 +65,31 @@ class RestRouterRouterTestCase extends RestRouterUnitTestCase {
     $this->assertEqual(count($item['_load_functions'][1]['rest_router_loader_callback']), 2, "Loader functin should have 2 extra arguments");
   }
 
+  public function testRouterNestedPaths() {
+    $routes['GET:path/%'] = array(
+      'path' => 'path/%',
+      'page callback' => 'api::nested_callback',
+      'access callback' => 1,
+      'http method' => 'GET',
+    );
+    $routes['GET:path/%/path/%'] = array(
+      'path' => 'path/%/path/%',
+      'page callback' => 'api::nested_callback',
+      'access callback' => 1,
+      'http method' => 'GET',
+    );
+
+    $router = $this->createRouter('GET', 'path/1');
+    $router->routes = $routes;
+    $item = $router->_menuMatchItem();
+    $this->assertIdentical($item['path'], 'path/%', "Correct path was matched");
+
+    $router = $this->createRouter('GET', 'path/1/path/2');
+    $router->routes = $routes;
+    $item = $router->_menuMatchItem();
+    $this->assertIdentical($item['path'], 'path/%/path/%', "Correct path was matched");
+  }
+
   public function testRouterResponses() {
     // Test 404 for missing route
     $router = $this->createRouter('GET', 'path');
@@ -154,4 +179,5 @@ class RestRouterTestEndpoint extends RestRouterApiEndpoint {
   public function callback_func() {}
   public function response_array() { return array('key' => 'value'); }
   public function response_redirect() { return rest_router_redirect('newpath'); }
+  public function nested_callback($a1, $a2 = NULL) { return $a1 . $a2; }
 }

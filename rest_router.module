@@ -139,7 +139,7 @@ function rest_router_handler($name) {
   $response = NULL;
 
   // Load endpoint definition. If endpoint isn't available there is
-  // nothig to process.
+  // nothing to process.
   $endpoint = rest_router_get_endpoint($name);
   if (empty($endpoint)) {
     return MENU_NOT_FOUND;
