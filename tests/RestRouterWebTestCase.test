@@ -129,6 +129,38 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
     }
   }
 
+  /**
+   * Create BasicAuth request
+   *
+   * @param $method
+   *   HTTP method name
+   * @param $path
+   *   Requested path
+   * @param $name
+   *   Username
+   * @param $password
+   *   Plain-text password
+   * @param $data
+   *   Optional additional data
+   * @return string
+   *   Request reponse
+   */
+  public function jsonBasicAuthHttpRequest($method, $path, $name, $password, $data = array()) {
+    // Create request
+    $options = array('headers' => array(
+      'Content-Type' => 'application/json',
+      'Accept' => 'application/json',
+      'Authorization' => 'Basic ' . base64_encode("$name:$password")
+    ));
+    if (!empty($data)) {
+      $options['data'] = json_encode($data);
+    }
+    $content = $this->httpRequest($method, $path, $options);
+    if (!empty($content)) {
+      return json_decode($content);
+    }
+  }
+
   public function jsonHttpRequest($method, $path, $data = array(), $redirect = TRUE) {
     $options = array('headers' => array(
       'Content-Type' => 'application/json',

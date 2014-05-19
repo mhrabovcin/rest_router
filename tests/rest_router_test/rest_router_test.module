@@ -26,5 +26,20 @@ function rest_router_test_rest_endpoints() {
       ),
       'version' => array('path' => array()),
     ),
+    'rest_router_test_basic' => array(
+      'path' => '_rest_router_test_basic',
+      'name' => 'Rest Router Test BasicAuth',
+      'versions' => array(
+        '1.0' => array(
+          'router' => 'RestRouterTestBasicAuthRouter',
+          'class'  => 'RestRouterTestBasicAuthApi',
+        ),
+      ),
+      'default version' => '1.0',
+      'auth' => array(
+        'basic' => array(),
+      ),
+      'version' => array('path' => array()),
+    ),
   );
 }
