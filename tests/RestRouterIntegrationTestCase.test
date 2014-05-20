@@ -148,7 +148,7 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
   /**
    * Test oAuth integration
    */
-  public function testRouterAuth() {
+  public function testRouterOauth() {
     // Create required objects
     $this->account  = $this->drupalCreateUser(array('access own authorizations', 'access own consumers'));
     $this->context  = $this->createContext('rest_router_test', 'Rest Router Test');
@@ -162,5 +162,19 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     $data = $this->jsonSignedHttpRequest('GET', '_rest_router_test/v1/access-user');
     $this->assertEqual($data[0], "test", "Singed request returns correct data.");
     $this->assertHttpHeader('HTTP_CODE', 200, "Signed requrest returns 200 HTTP code.");
+  }
+
+  /**
+   * Test Basic Auth integration
+   */
+  public function testRouterBasicAuth() {
+    $account  = $this->drupalCreateUser(array('administer nodes'));
+
+    // Test non-signed request that should fail
+    $this->jsonHttpRequest('GET', '_rest_router_test_basic/test');
+    $this->assertHttpHeader('HTTP_CODE', 401, "Non authenticated request returns 401 HTTP code.");
+    $data = $this->jsonBasicAuthHttpRequest('GET', '_rest_router_test_basic/test', $account->name, $account->pass_raw);
+    $this->assertEqual($data[0], "test", "Basic authenticated request returns correct data.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Basic authenticated request returns 200 HTTP code.");
   }
 }

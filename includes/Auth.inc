@@ -121,9 +121,15 @@ class RestRouterAuthAnonymous extends RestRouterAuth {
  */
 class RestRouterAuthBasic extends RestRouterAuth {
   public function authenticate() {
+    if (empty($_SERVER['PHP_AUTH_USER']) || empty($_SERVER['PHP_AUTH_PW'])) {
+      return FALSE;
+    }
     $username = $_SERVER['PHP_AUTH_USER'];
     $password = $_SERVER['PHP_AUTH_PW'];
     $account = user_load_by_name($username);
+    if (!$account) {
+      return FALSE;
+    }
 
     require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
     if (user_check_password($password, $account)) {

@@ -116,3 +116,23 @@ class RestRouterTestApiV2 extends RestRouterTestApiV1 {
     return "testv2";
   }
 }
+
+class RestRouterTestBasicAuthRouter extends RestRouterApiRouter {
+  public function routes() {
+    $items = array();
+
+    $items[self::HTTP_GET . ':test'] = array(
+      'path' => 'test',
+      'page callback' => 'api::test',
+      'access arguments' => array('administer nodes'),
+    );
+
+    return $items;
+  }
+}
+
+class RestRouterTestBasicAuthApi extends RestRouterApiEndpoint {
+  public function test() {
+    return "test";
+  }
+}
