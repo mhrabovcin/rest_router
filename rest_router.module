@@ -313,6 +313,8 @@ function rest_router_plugins($type = NULL) {
       'query' => 'RestRouterVersionQuery',
     ),
   );
+  // Allow other modules to modify or add additional plugins.
+  drupal_alter('rest_plugins', $plugins);
 
   return isset($plugins[$type]) ? $plugins[$type] : array();
 }

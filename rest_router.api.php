@@ -80,6 +80,15 @@ function hook_rest_router_request_alter($request) {
 }
 
 /**
+ * Alter the REST router plugins.
+ *
+ * @param array $plugins
+ */
+function hook_rest_plugins_alter(&$plugins) {
+  $plugins['auth']['my'] = 'MyExampleAuthClass';
+}
+
+/**
  * Each router definition must inherit RestRouterApiRouter class and implement
  * router() method.
  */
