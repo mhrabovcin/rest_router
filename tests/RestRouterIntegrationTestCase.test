@@ -177,4 +177,19 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     $this->assertEqual($data[0], "test", "Basic authenticated request returns correct data.");
     $this->assertHttpHeader('HTTP_CODE', 200, "Basic authenticated request returns 200 HTTP code.");
   }
+
+  /**
+   * Test beforeRequest and afterRequest methods.
+   */
+  public function testRouterBeforeAfterMethods() {
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2.0/test');
+    $this->assertEqual($data[0], "testv2", "Test method return correct output.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Test method return correct HTTP code.");
+    // Allow beforeRequest and afterRequest methods in RestRouterTestApiV2 to
+    // alter the response value.
+    variable_set('rest_router_test_alter', 1);
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2.0/test');
+    $this->assertTrue(strpos($data[0], 'before') === 0, "Before request method altered output");
+    $this->assertTrue(strpos($data[0], 'after') !== FALSE, "After request method altered output");
+  }
 }

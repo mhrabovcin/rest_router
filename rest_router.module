@@ -364,5 +364,12 @@ function rest_router_access_callback($object, $method) {
 function rest_router_page_callback($object, $method) {
   // Remove object reference and method name from args
   $args = array_slice(func_get_args(), 2);
-  return call_user_func_array(array($object, $method), $args);
+  // Call beforeRequest with method name and arguments.
+  call_user_func_array(array($object, 'beforeRequest'), array($method, $args));
+
+  $value = call_user_func_array(array($object, $method), $args);
+  // Call afterRequest with method name, arguments, and response value.
+  call_user_func_array(array($object, 'afterRequest'), array($method, $args, &$value));
+
+  return $value;
 }
