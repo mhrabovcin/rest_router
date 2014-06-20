@@ -112,8 +112,27 @@ class RestRouterTestApiV1 extends RestRouterApiEndpoint {
 }
 
 class RestRouterTestApiV2 extends RestRouterTestApiV1 {
+  protected $testValue;
+
+  public function __construct(RestRouterRequest $request) {
+    parent::__construct($request);
+    $this->testValue = "testv2";
+  }
+
   public function test() {
-    return "testv2";
+    return $this->testValue;
+  }
+
+  public function beforeRequest($method, array $args = array()) {
+    if (variable_get('rest_router_test_alter', 0)) {
+      $this->testValue = 'before' . $this->testValue;
+    }
+  }
+
+  public function afterRequest($method, array $args = array(), &$response_value) {
+    if (variable_get('rest_router_test_alter', 0)) {
+      $response_value = $response_value . 'after';
+    }
   }
 }
 

@@ -73,4 +73,26 @@ abstract class RestRouterApiEndpoint {
   protected function redirectResponse($path, $code = 301) {
     return new RestRouterRedirectResponse($path, $code);
   }
+
+  /**
+   * Run operations before a endpoint method is called.
+   *
+   * @param string $method
+   *   Name of request method being invoked.
+   * @param array $args
+   *   Array of arguments passed to method.
+   */
+  public function beforeRequest($method, array $args = array()) {}
+
+  /**
+   * Run operations after a endpoint method is called.
+   *
+   * @param string $method
+   *   Name of request method being invoked.
+   * @param array $args
+   *   Array of arguments passed to method.
+   * @param mixed $response_value
+   *   Response from the method, could be mixed value or \RestRouterResponse.
+   */
+  public function afterRequest($method, array $args = array(), &$response_value) {}
 }
