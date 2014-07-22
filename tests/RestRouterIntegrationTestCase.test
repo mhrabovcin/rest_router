@@ -192,4 +192,12 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     $this->assertTrue(strpos($data[0], 'before') === 0, "Before request method altered output");
     $this->assertTrue(strpos($data[0], 'after') !== FALSE, "After request method altered output");
   }
+
+  /**
+   * Test injecting headers in response creation.
+   */
+  public function testRouterSetHeaders() {
+    $this->jsonHttpRequest('GET', '_rest_router_test/v3.0/test');
+    $this->assertHttpHeader('X_RestRouter_Test', 'test', "Test method set custom header.");
+  }
 }
