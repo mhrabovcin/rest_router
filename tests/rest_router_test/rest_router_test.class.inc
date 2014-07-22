@@ -136,6 +136,13 @@ class RestRouterTestApiV2 extends RestRouterTestApiV1 {
   }
 }
 
+class RestRouterTestApiV3 extends RestRouterTestApiV1 {
+
+  public function test() {
+    return new RestRouterResponse(200, 'test', array('X-RestRouter-Test' => 'test'));
+  }
+}
+
 class RestRouterTestBasicAuthRouter extends RestRouterApiRouter {
   public function routes() {
     $items = array();

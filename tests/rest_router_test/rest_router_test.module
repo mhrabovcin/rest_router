@@ -19,6 +19,10 @@ function rest_router_test_rest_endpoints() {
           'router' => 'RestRouterTestRouterV2',
           'class'  => 'RestRouterTestApiV2',
         ),
+        '3.0' => array(
+          'router' => 'RestRouterTestRouterV1',
+          'class'  => 'RestRouterTestApiV3',
+        ),
       ),
       'default version' => '1.0',
       'auth' => array(

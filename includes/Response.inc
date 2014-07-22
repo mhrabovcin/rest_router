@@ -83,10 +83,10 @@ class RestRouterResponse {
     505 => '505 HTTP Version Not Supported'
   );
 
-  function __construct($code, $data = NULL) {
+  function __construct($code, $data = NULL, $headers = array()) {
     $this->code      = $code;
     $this->data      = $data;
-    $this->headers   = array();
+    $this->headers   = $headers;
   }
 
   /**
