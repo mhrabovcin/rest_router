@@ -199,7 +199,7 @@ class RestRouterResponse {
    * @return [type] [description]
    */
   public function body() {
-    if (!empty($this->data)) {
+    if (isset($this->data)) {
       return $this->format();
     }
     else {
