@@ -89,7 +89,7 @@ class RestRouterFormatter {
    *   Formatted response string
    */
   public function format() {
-    if ($this->formatter && $this->response->data()) {
+    if ($this->formatter && !is_null($this->response->data())) {
       return call_user_func_array(array($this, $this->formatter['callback']), array($this->response->data()));
     }
     return NULL;
