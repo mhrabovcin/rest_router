@@ -200,4 +200,18 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     $this->jsonHttpRequest('GET', '_rest_router_test/v3.0/test');
     $this->assertHttpHeader('X_RestRouter_Test', 'test', "Test method set custom header.");
   }
+
+  /**
+   * Test additional content-type headers in the request.
+   */
+  public function testRouterExtraContentTypes() {
+    $data = $this->jsonHttpRequest('GET', '_rest_router_test/v1/test', array(), TRUE, array(
+      'headers' => array(
+        'Content-Type' => 'application/json; charset=UTF-8',
+        'Accept'       => 'application/json',
+      ),
+    ));
+
+    $this->assertHttpHeader('HTTP_CODE', 200, "Test method ignored extra content-type headers.");
+   }
 }
