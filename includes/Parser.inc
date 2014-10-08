@@ -70,7 +70,7 @@ class RestRouterParser {
 
 
   /**
-   * Retrieve parser infomration based on request.
+   * Retrieve parser information based on request.
    *
    * @param $content_type
    *   Request content type
@@ -81,9 +81,13 @@ class RestRouterParser {
     $parsers  = self::parsers();
     $endpoint = $this->request->endpoint();
 
+    $content_types = array_map('trim', explode(';', $content_type));
+
     foreach ($parsers as $name => $parser) {
-      if (in_array($name, $endpoint['request']) && in_array($content_type, $parser['mime'])) {
-        return $parser;
+      foreach ($content_types as $content_type) {
+        if (in_array($name, $endpoint['request']) && in_array($content_type, $parser['mime'])) {
+          return $parser;
+        }
       }
     }
   }

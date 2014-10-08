@@ -103,10 +103,12 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
    *   Requested path
    * @param $data
    *   Optional additional data
+   * @param $options
+   *   Optional options for the request, such as headers.
    * @return
    *   Request reponse
    */
-  public function jsonSignedHttpRequest($method, $path, $data = array()) {
+  public function jsonSignedHttpRequest($method, $path, $data = array(), $options = array()) {
     // Build singature
     $token = isset($this->token) ? $this->token : NULL;
     $req = OAuthRequest::from_consumer_and_token($this->consumer, $token, $method, url($path, array('absolute' => TRUE)), array());
@@ -115,11 +117,13 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
     list($header_key, $header_val) = explode(': ', $req->to_header());
 
     // Create request
-    $options = array('headers' => array(
-      'Content-Type' => 'application/json',
-      'Accept' => 'application/json',
-      'Authorization' => $header_val,
-    ));
+    if (empty($options)) {
+      $options = array('headers' => array(
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+        'Authorization' => $header_val,
+      ));
+    }
     if (!empty($data)) {
       $options['data'] = json_encode($data);
     }
@@ -142,16 +146,20 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
    *   Plain-text password
    * @param $data
    *   Optional additional data
+   * @param $options
+   *   Optional options for the request, such as headers.
    * @return string
    *   Request reponse
    */
-  public function jsonBasicAuthHttpRequest($method, $path, $name, $password, $data = array()) {
+  public function jsonBasicAuthHttpRequest($method, $path, $name, $password, $data = array(), $options = array()) {
     // Create request
-    $options = array('headers' => array(
-      'Content-Type' => 'application/json',
-      'Accept' => 'application/json',
-      'Authorization' => 'Basic ' . base64_encode("$name:$password")
-    ));
+    if (empty($options)) {
+      $options = array('headers' => array(
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+        'Authorization' => 'Basic ' . base64_encode("$name:$password")
+      ));
+    }
     if (!empty($data)) {
       $options['data'] = json_encode($data);
     }
@@ -161,11 +169,13 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
     }
   }
 
-  public function jsonHttpRequest($method, $path, $data = array(), $redirect = TRUE) {
-    $options = array('headers' => array(
-      'Content-Type' => 'application/json',
-      'Accept' => 'application/json',
-    ));
+  public function jsonHttpRequest($method, $path, $data = array(), $redirect = TRUE, $options = array()) {
+    if (empty($options)) {
+      $options = array('headers' => array(
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+      ));
+    }
     if (!empty($data)) {
       $options['data'] = json_encode($data);
     }
