@@ -106,7 +106,7 @@ class RestRouterRequest {
    * Request data
    *
    * @param $key
-   *   Optinally specific key from DATA
+   *   Optionally specific key from DATA
    * @return
    *   Record from data request data or NULL if key is not found
    */

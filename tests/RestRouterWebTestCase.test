@@ -57,7 +57,7 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
    * @param $account
    *   User account
    * @param $context
-   *   OAauth context object
+   *   OAuth context object
    * @param $name
    *   Token name
    * @return
@@ -106,10 +106,10 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
    * @param $options
    *   Optional options for the request, such as headers.
    * @return
-   *   Request reponse
+   *   Request response
    */
   public function jsonSignedHttpRequest($method, $path, $data = array(), $options = array()) {
-    // Build singature
+    // Build signature
     $token = isset($this->token) ? $this->token : NULL;
     $req = OAuthRequest::from_consumer_and_token($this->consumer, $token, $method, url($path, array('absolute' => TRUE)), array());
     $signature_method = DrupalOAuthClient::signatureMethod();
@@ -134,39 +134,28 @@ class RestRouterWebTestCase extends DrupalWebTestCase {
   }
 
   /**
-   * Create BasicAuth request
+   * Will do a json HTTP Request using the passed in user for authentication.
    *
-   * @param $method
-   *   HTTP method name
-   * @param $path
-   *   Requested path
-   * @param $name
-   *   Username
-   * @param $password
-   *   Plain-text password
-   * @param $data
-   *   Optional additional data
-   * @param $options
-   *   Optional options for the request, such as headers.
+   * @param string $method
+   *   Request method to perform.
+   * @param string $path
+   *   Endpoint path.
+   * @param array $data
+   *   Data to send with the request.
+   * @param string $name
+   *   The user name to authenticate.
+   * @param string $pass
+   *   The user password.
+   * @param array $options
+   *   Additional options to be passed into the headers.
+   *
    * @return string
-   *   Request reponse
+   *   JSON response.
    */
-  public function jsonBasicAuthHttpRequest($method, $path, $name, $password, $data = array(), $options = array()) {
-    // Create request
-    if (empty($options)) {
-      $options = array('headers' => array(
-        'Content-Type' => 'application/json',
-        'Accept' => 'application/json',
-        'Authorization' => 'Basic ' . base64_encode("$name:$password")
-      ));
-    }
-    if (!empty($data)) {
-      $options['data'] = json_encode($data);
-    }
-    $content = $this->httpRequest($method, $path, $options);
-    if (!empty($content)) {
-      return json_decode($content);
-    }
+  public function jsonBasicAuthHttpRequest($method, $path, $data = array(), $name = NULL, $pass = NULL, $options = array()) {
+    $this->httpauth_credentials = $name . ':' . $pass;
+    $this->httpauth_method = CURLAUTH_BASIC;
+    return $this->jsonHttpRequest($method, $path, $data, TRUE, $options);
   }
 
   public function jsonHttpRequest($method, $path, $data = array(), $redirect = TRUE, $options = array()) {

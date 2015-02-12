@@ -91,7 +91,7 @@ function rest_router_get_endpoint($name) {
  * @param $path
  *   Requested path
  * @return
- *   Path withtout prefix
+ *   Path without prefix
  */
 function rest_router_get_path($endpoint, $path = NULL) {
   $path = !empty($path) ? $path : $_GET['q'];
@@ -212,7 +212,7 @@ function rest_router_deliver(RestRouterResponse $response) {
 }
 
 /**
- * Run authentiation plugins to set correct user.
+ * Run authentication plugins to set correct user.
  *
  * @param $request
  *   RestRouterRequest object
@@ -232,6 +232,8 @@ function rest_router_authenticate(RestRouterRequest $request) {
         global $user;
         drupal_save_session(FALSE);
         $user = $account;
+        // Notify other modules that user has been authenticated
+        module_invoke_all('rest_router_authenticate', $name, $account);
         return;
       }
     }

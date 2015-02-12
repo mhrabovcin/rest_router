@@ -15,7 +15,7 @@ To create new rest endpoint module needs to implement `hook_rest_endpoints`. Hoo
 
 ##### Custom responses
 
-Object or function callbacks called by rest_router module can return repsonse in different data formats. Scalar responses are always converted to array
+Object or function callbacks called by rest_router module can return response in different data formats. Scalar responses are always converted to array
 
 ```php
     function my_callback() {
@@ -47,7 +47,7 @@ Each response has helper method that can be used from inherited class.
         // Response by internal helper
         return $this->errorResponse(400, "Missing param [1]");
 
-        // Redirect resposne exmaple
+        // Redirect response example
         return $this->redirectResponse('method/2');
     }
 ```

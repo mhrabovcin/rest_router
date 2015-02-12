@@ -57,12 +57,12 @@ class RestRouterRouterTestCase extends RestRouterUnitTestCase {
     );
     $item = $router->_menuMatchItem();
     $this->assertIdentical($item['path'], 'path/%', "Menu path wasn't translated to correct menu mask");
-    $this->assertIdentical($item['page callback'], 'rest_router_page_callback', "Page callback wasn't translted to 'rest_router_page_callback'");
+    $this->assertIdentical($item['page callback'], 'rest_router_page_callback', "Page callback wasn't translated to 'rest_router_page_callback'");
     $this->assertEqual(count(unserialize($item['page arguments'])), 2, "Menu item should have 2 page arguments when routing to object");
-    $this->assertIdentical($item['access callback'], 'rest_router_access_callback', "Access callback wasn't translted to 'rest_router_access_callback'");
+    $this->assertIdentical($item['access callback'], 'rest_router_access_callback', "Access callback wasn't translated to 'rest_router_access_callback'");
     $this->assertEqual(count($item['access arguments']), 2, "Menu item should have 2 access arguments when routing to object");
     $this->assertTrue(isset($item['_load_functions'][1]['rest_router_loader_callback']), "Loader function isn't set correctly to 'rest_router_loader_callback'");
-    $this->assertEqual(count($item['_load_functions'][1]['rest_router_loader_callback']), 2, "Loader functin should have 2 extra arguments");
+    $this->assertEqual(count($item['_load_functions'][1]['rest_router_loader_callback']), 2, "Loader function should have 2 extra arguments");
   }
 
   public function testRouterNestedPaths() {
@@ -110,7 +110,7 @@ class RestRouterRouterTestCase extends RestRouterUnitTestCase {
       'http method' => 'GET',
     );
     $response = $router->process();
-    $this->assertIdentical($response->code(), 401, "Forbiden response should be 401 code.");
+    $this->assertIdentical($response->code(), 401, "Forbidden response should be 401 code.");
     $this->assertIdentical($response->getMessage(), 'Access denied', "Response message should be Access denied.");
 
     // Test 200 normal response
@@ -122,7 +122,7 @@ class RestRouterRouterTestCase extends RestRouterUnitTestCase {
     );
     $response = $router->process();
     $this->assertIdentical($response->code(), 200, "Successful response should be 200 code.");
-    $this->assertIdentical($response->data(), array('key' => 'value'), "Wront data returned from method");
+    $this->assertIdentical($response->data(), array('key' => 'value'), "Wrong data returned from method");
 
     // Test 301 normal response
     $router->routes['GET:path'] = array(
@@ -133,7 +133,7 @@ class RestRouterRouterTestCase extends RestRouterUnitTestCase {
     );
     $response = $router->process();
     $this->assertIdentical($response->code(), 301, "Successful response should be 200 code.");
-    $this->assertIdentical($response->data(), NULL, "Wront data returned from method");
+    $this->assertIdentical($response->data(), NULL, "Wrong data returned from method");
 
   }
 

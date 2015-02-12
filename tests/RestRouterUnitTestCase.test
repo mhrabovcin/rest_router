@@ -90,7 +90,7 @@ class RestRouterUnitTestCase extends DrupalUnitTestCase {
    * Create fake REST endpoint
    *
    * @param $endpoint
-   *   Values that should be overriden in default endpoint
+   *   Values that should be overridden in default endpoint
    * @return
    *   Endpoint definition
    */

@@ -1,4 +1,5 @@
 <?php
+use Drupal\rest_router\response\StructuredErrorResponse;
 
 /**
  * @file
@@ -52,6 +53,21 @@ abstract class RestRouterApiEndpoint {
    */
   protected function errorResponse($code, $message, $data = NULL) {
     return new RestRouterErrorResponse($code, $message, $data);
+  }
+
+  /**
+   * Create structured error response.
+   *
+   * @param int $code
+   *   Valid HTTP response code.
+   *
+   * @param string $message
+   *   Additional response message.
+   *
+   * @return \Drupal\rest_router\response\StructuredErrorResponse
+   */
+  protected function structuredErrorResponse($code, $message) {
+    return new StructuredErrorResponse($code, $message);
   }
 
   /**

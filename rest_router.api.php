@@ -33,7 +33,7 @@ function hook_rest_endpoints() {
       // Default version of API if none provided. If this will be NULL and none
       // version will be parsed from HTTP request router will generated 404 response.
       'default version' => '1.0',
-      // List of supported authenticatin plugins
+      // List of supported authentication plugins
       'auth' => array(
         // Key is machine name of plugin and value is array which represents
         // configuration.
@@ -89,6 +89,19 @@ function hook_rest_plugins_alter(&$plugins) {
 }
 
 /**
+ * Notifies other modules that user has been authenticated.
+ *
+ * @param string $plugin_name
+ *   Name of plugin that authenticated user
+ *
+ * @param \stdClass $account
+ *   Drupal user account
+ */
+function hook_rest_router_authenticate($plugin_name, $account) {
+
+}
+
+/**
  * Each router definition must inherit RestRouterApiRouter class and implement
  * router() method.
  */
@@ -111,7 +124,7 @@ class CustomRestRouterV1 extends RestRouterApiRouter {
     $items[self::HTTP_POST . ':my/path/%api::loader_callback'] = array(
       // Path can contain normal loader functions i.e. %node which will translate
       // to node_load or API class specific functions which can be defined as
-      // in example: %api::loader_callback. This definition would call method of initialzed
+      // in example: %api::loader_callback. This definition would call method of initialized
       // endpoint object $endpoint->loader_callback([arg])
       'path' => 'subscriptions/%api::loader_callback',
       // Page callback can contain normal php function i.e. node_view or API method
@@ -119,11 +132,11 @@ class CustomRestRouterV1 extends RestRouterApiRouter {
       'page callback' => 'api::page_callback',
       // This works exactly as normal hook_menu implementation
       'page arguments' => array(1),
-      // Can contain normal function or objec method
+      // Can contain normal function or object method
       'access callback' => 'api::access_callback',
       // Works as hook_menu
       'access arguments' => array(1),
-      // Specifies HTTP method to which callback respons
+      // Specifies HTTP method to which callback response
       'http method' => self::HTTP_GET,
     );
 

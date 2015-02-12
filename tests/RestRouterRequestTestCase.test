@@ -14,12 +14,12 @@ class RestRouterRequestTestCase extends RestRouterUnitTestCase {
   public function testCommon() {
     // Path handling
     $request = $this->createRequest('test');
-    $this->assertIdentical($request->getPath(), 'test', 'Path is differnt from one set when creating request');
+    $this->assertIdentical($request->getPath(), 'test', 'Path is different from one set when creating request');
     $request->setPath('newpath');
     $this->assertIdentical($request->getPath(), 'newpath', "Expected path is 'newpath'");
 
     // Version handling
-    $this->assertIdentical($request->getVersion(), NULL, "Request shoudln't provide default version");
+    $this->assertIdentical($request->getVersion(), NULL, "Request shouldn't provide default version");
     $request->setVersion('1.0');
     $this->assertIdentical($request->getVersion(), '1.0', "Expected 1.0 version.");
   }

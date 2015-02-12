@@ -13,7 +13,7 @@ class RestRouterResponse {
   protected $code;
 
   /**
-   * Resonse data
+   * Response data
    */
   protected $data;
 

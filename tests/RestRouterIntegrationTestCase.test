@@ -87,7 +87,7 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
   }
 
   /**
-   * Tests versinioning of API - page, access callbacks and loader functions
+   * Tests versioning of API - page, access callbacks and loader functions
    */
   public function testRouterVersioning() {
     // Test v1 response
@@ -115,14 +115,14 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     $this->assertEqual($data, NULL, "Access denied route output is NULL.");
     $this->assertHttpHeader('HTTP_CODE', 401, "Access denied route returns 401 HTTP code.");
 
-    // Changed acess callback in v2
+    // Changed access callback in v2
     $data = $this->jsonHttpRequest('GET', '_rest_router_test/v2/denied');
     $this->assertEqual($data[0], "testv2", "Route is accessible in v2 api.");
     $this->assertHttpHeader('HTTP_CODE', 200, "Route returns 200 HTTP code in v2.");
   }
 
   /**
-   * Test using specific router reponses
+   * Test using specific router responses
    */
   public function testRouterResponses() {
     $common = array(
@@ -161,7 +161,7 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
 
     $data = $this->jsonSignedHttpRequest('GET', '_rest_router_test/v1/access-user');
     $this->assertEqual($data[0], "test", "Singed request returns correct data.");
-    $this->assertHttpHeader('HTTP_CODE', 200, "Signed requrest returns 200 HTTP code.");
+    $this->assertHttpHeader('HTTP_CODE', 200, "Signed request returns 200 HTTP code.");
   }
 
   /**
@@ -173,7 +173,7 @@ class RestRouterIntegrationTestCase extends RestRouterWebTestCase {
     // Test non-signed request that should fail
     $this->jsonHttpRequest('GET', '_rest_router_test_basic/test');
     $this->assertHttpHeader('HTTP_CODE', 401, "Non authenticated request returns 401 HTTP code.");
-    $data = $this->jsonBasicAuthHttpRequest('GET', '_rest_router_test_basic/test', $account->name, $account->pass_raw);
+    $data = $this->jsonBasicAuthHttpRequest('GET', '_rest_router_test_basic/test', array(), $account->name, $account->pass_raw);
     $this->assertEqual($data[0], "test", "Basic authenticated request returns correct data.");
     $this->assertHttpHeader('HTTP_CODE', 200, "Basic authenticated request returns 200 HTTP code.");
   }
